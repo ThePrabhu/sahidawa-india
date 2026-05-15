@@ -7,26 +7,64 @@ dotenv.config();
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import supabase from './db/supabase';
+import { limiter } from './middleware/rateLimit';
+import reportsRouter from './routes/reports';
+import pharmaciesRouter from './routes/pharmacies';
+import verifyRouter from './routes/verify';
+import analyticsRoutes from './routes/analytics';
+import { supabase } from './db/client';
+
+import logger from './utils/logger.js';
+import { errorHandler } from './middleware/errorHandler.js';
 
 const app: Express = express();
 const port = process.env.PORT || 4000;
 
-// Middleware
 app.use(helmet());
-app.use(cors());
-app.use(express.json());
-app.use(morgan('dev'));
 
-// --- ADDED ROUTES ---
+// Security: restrict CORS to known origins instead of wildcard
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:4000',
+  'http://localhost:8000',
+];
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true,
+}));
 
-// 1. Root Route (This fixes the "Cannot GET /" error)
+app.use(express.json({ limit: '1mb' }));
+app.use(limiter);
+
+morgan.token('status', (req: Request, res: Response) => {
+  const status = res.statusCode;
+  if (status >= 500) return 'error';
+  if (status >= 400) return 'warn';
+  return 'info';
+});
+
+app.use(
+  morgan(':method :url :status - :response-time ms'),
+);
+
+morgan((tokens, req: Request, res: Response) => {
+  const status = res.statusCode;
+  const level = status >= 500 ? 'error' : status >= 400 ? 'warn' : 'info';
+  logger.log({
+    level,
+    message: `${tokens.method(req, res)} ${tokens.url(req, res)} ${status} - ${tokens['response-time'](req, res)} ms`,
+  });
+  return undefined;
+});
+
 app.get('/', (req: Request, res: Response) => {
+  logger.info('Root route accessed');
   res.send('SahiDawa-India API is running successfully!');
 });
 
-// 2. Health Check Route — verifies Supabase DB connectivity
 app.get('/health', async (req: Request, res: Response) => {
+  logger.info('Health check endpoint accessed');
+  
   try {
     // Run a lightweight test query to confirm DB connection is alive
     const { error } = await supabase
@@ -59,7 +97,17 @@ app.get('/health', async (req: Request, res: Response) => {
   }
 });
 
-// Start the server
-app.listen(port, () => {
-  console.log(`[API Server]: SahiDawa API is running at http://localhost:${port}`);
-});
+app.use('/reports', reportsRouter);
+app.use('/api/pharmacies', pharmaciesRouter);
+app.use('/api/verify', verifyRouter);
+app.use('/api/analytics', analyticsRoutes);
+
+app.use(errorHandler);
+
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(port, () => {
+    logger.info(`SahiDawa API is running at http://localhost:${port}`);
+  });
+}
+
+export default app;
