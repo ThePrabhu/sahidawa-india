@@ -65,22 +65,20 @@ jobs:
             // Filter out pull requests (GitHub API lists PRs as issues)
             const activeAssignedIssues = assignedIssues.data.filter(issue => !issue.pull_request);
 
-            if (activeAssignedIssues.length > 0) {
-              const alreadyAssignedNum = activeAssignedIssues[0].number;
-              const alreadyAssignedTitle = activeAssignedIssues[0].title;
-              
-              console.log(`Denying assignment: @${commenter} already holds active issue #${alreadyAssignedNum}.`);
+            if (activeAssignedIssues.length >= 3) {
+              const assignedIssueList = activeAssignedIssues.map(i => `#${i.number} ("${i.title}")`).join('\n- ');
+              console.log(`Denying assignment: @${commenter} already holds ${activeAssignedIssues.length} active issues.`);
 
               await github.rest.issues.createComment({
                 owner: repo.owner,
                 repo: repo.repo,
                 issue_number: issueNumber,
-                body: `❌ **Assignment Denied**\n\nHi @${commenter}, to ensure fair opportunities for everyone participating in GSSoC/Hacktoberfest, contributors are limited to **1 active assigned issue** at a time.\n\nYou are currently assigned to active issue: **#${alreadyAssignedNum}** ("${alreadyAssignedTitle}").\n\nPlease submit a Pull Request or request to be unassigned from #${alreadyAssignedNum} before claiming another issue! Thank you for your cooperation! 🤝`
+                body: `❌ **Assignment Denied**\n\nHi @${commenter}, to ensure fair opportunities for everyone participating in GSSoC/Hacktoberfest, contributors are limited to a maximum of **3 active assigned issues** at a time.\n\nYou are already assigned to the following ${activeAssignedIssues.length} active tasks:\n- ${assignedIssueList}\n\nPehle unhe complete kijiye without incomplete PR raise kare, tabhi agle task ke liye apply kare! Thank you for your cooperation! 🤝`
               });
               return;
             }
 
-            // 3. If no active issue is held, assign them to this issue
+            // 3. Assign them to this issue
             console.log(`Assigning issue #${issueNumber} to @${commenter}...`);
 
             await github.rest.issues.addAssignees({
@@ -94,5 +92,13 @@ jobs:
               owner: repo.owner,
               repo: repo.repo,
               issue_number: issueNumber,
-              body: `🎉 **Issue Assigned!**\n\nHi @${commenter}, this issue has been successfully assigned to you! \n\n🚀 **Next Steps:**\n- Create a new branch for your edits.\n- Link your PR to this issue (e.g. \`Closes #${issueNumber}\`).\n- Submit your PR within **3 days** to avoid automatic expiration and release back to the community.\n\nHappy Coding! 💻✨`
+              body: `🎉 **Issue Assigned & Locked!**\n\nHi @${commenter}, this issue has been successfully assigned to you! The conversation has been locked to prevent spam from other contributors.\n\n🚀 **Next Steps:**\n- Create a new branch for your edits.\n- Link your PR to this issue (e.g. \`Closes #${issueNumber}\`).\n- Submit your PR within **3 days** to avoid automatic expiration and release back to the community.\n\nHappy Coding! 💻✨`
+            });
+
+            // 4. Lock the issue conversation to prevent comment spam
+            console.log(`Locking issue #${issueNumber} to prevent comment spam...`);
+            await github.rest.issues.lock({
+              owner: repo.owner,
+              repo: repo.repo,
+              issue_number: issueNumber
             });
