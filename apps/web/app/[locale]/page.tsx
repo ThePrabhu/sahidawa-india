@@ -262,26 +262,41 @@ export default function SahiDawaHome() {
                 </div>
 
                 {/* ── AI Health Assistant CTA Banner ── */}
-                <div className="mt-6 rounded-3xl border border-blue-100 bg-linear-to-r from-blue-50 to-purple-50 p-6">
-                    <div className="flex flex-wrap items-center justify-between gap-4">
-                        <div className="flex items-center gap-4">
-                            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-linear-to-r from-blue-500 to-purple-500 shadow-lg">
-                                <MessageCircle size={28} className="text-white" />
+                <div className="group relative mt-8 overflow-hidden rounded-3xl border border-blue-200/60 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6 shadow-sm transition-shadow duration-300 hover:shadow-lg hover:shadow-blue-200/40 sm:p-8 md:p-10">
+                    {/* Decorative background orbs */}
+                    <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-blue-200/30 blur-3xl transition-transform duration-700 group-hover:scale-110" />
+                    <div className="pointer-events-none absolute -bottom-12 -left-12 h-40 w-40 rounded-full bg-purple-200/30 blur-3xl transition-transform duration-700 group-hover:scale-110" />
+
+                    <div className="relative z-10 flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+                        <div className="flex items-center gap-4 sm:gap-5">
+                            {/* Icon container */}
+                            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg shadow-blue-500/25 transition-transform duration-300 group-hover:scale-105 sm:h-16 sm:w-16">
+                                <MessageCircle size={28} className="text-white drop-shadow-sm" />
                             </div>
-                            <div>
-                                <h3 className="text-lg font-bold text-slate-800">
-                                    AI Health Assistant
-                                </h3>
-                                <p className="text-sm text-slate-600">
-                                    Get instant health advice and symptom checking
+                            <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                    <h3 className="text-xl font-extrabold tracking-tight text-slate-800 sm:text-2xl">
+                                        AI Health Assistant
+                                    </h3>
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-blue-600">
+                                        <span className="relative flex h-1.5 w-1.5">
+                                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75" />
+                                            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-blue-500" />
+                                        </span>
+                                        AI
+                                    </span>
+                                </div>
+                                <p className="text-sm font-medium leading-relaxed text-slate-500 sm:text-base">
+                                    Get instant health advice, symptom checking &amp; prescription guidance
                                 </p>
                             </div>
                         </div>
                         <button
                             onClick={() => handleNavigation("health")}
-                            className="rounded-xl bg-linear-to-r from-blue-500 to-purple-500 px-6 py-2.5 font-bold text-white transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                            className="group/btn flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-500 to-purple-600 px-8 py-3.5 text-base font-bold text-white shadow-md shadow-blue-500/20 transition-all duration-200 hover:scale-[1.03] hover:shadow-lg hover:shadow-blue-500/30 active:scale-[0.98] sm:w-auto"
                         >
-                            Chat Now →
+                            Chat Now
+                            <ChevronRight size={18} className="transition-transform duration-200 group-hover/btn:translate-x-0.5" />
                         </button>
                     </div>
                 </div>
@@ -302,96 +317,73 @@ export default function SahiDawaHome() {
                     </div>
                 </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8 mb-20">
-          {/* Live Alerts Panel */}
-          <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden flex flex-col h-[400px]">
-            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <div className="flex items-center gap-2">
-                <Activity size={20} className="text-red-500" />
-                <h3 className="text-lg font-bold text-slate-800">
-                  Live CDSCO Alerts
-                </h3>
-              </div>
-              <span className="text-xs font-bold bg-red-100 text-red-600 px-2.5 py-1 rounded-full uppercase tracking-wider hidden sm:block">
-                India Region
-              </span>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/30">
-              {/* Alert Item */}
-              {homepageAlerts && homepageAlerts.length > 0 ? (
-                homepageAlerts.map((alert) => (
-                  <div 
-                    key={alert.id} 
-                    className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex items-start gap-4 relative overflow-hidden group hover:shadow-md transition-shadow cursor-pointer"
-                  >
-                    {/* Left edge colored strip */}
-                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${
-                      alert.brand_name === 'SYSTEM_UPDATE' 
-                        ? 'bg-blue-500' 
-                        : (alert.cdsco_approval_status === 'banned' || alert.is_counterfeit_alert) 
-                        ? 'bg-red-500' : 'bg-orange-400'        
-                    }`}>
-                    </div>
-
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors ${
-                      alert.brand_name === 'SYSTEM_UPDATE' 
-                        ? 'bg-blue-50 text-blue-500 group-hover:bg-blue-100' 
-                        : (alert.cdsco_approval_status === 'banned' || alert.is_counterfeit_alert) 
-                          ? 'bg-red-50 text-red-500 group-hover:bg-red-100' 
-                          : 'bg-orange-50 text-orange-500 group-hover:bg-orange-100'
-                    }`}>
-                      {alert.brand_name === 'SYSTEM_UPDATE' ? (
-                        <Globe size={20} strokeWidth={2.5} />
-                      ) : (
-                        <AlertTriangle size={20} strokeWidth={2.5} />
-                      )}
-                    </div>
-
-                    <div className="flex-1">
-                      <div className="flex justify-between items-start">
-                        <h4 className="font-bold text-slate-800 leading-tight">{alert.brand_name}</h4>
-                        <span className="text-[11px] font-medium text-slate-400">{formatRelativeTime(alert.created_at)}</span>
-                      </div>
-                      <p className="text-sm text-slate-500 mt-1 font-medium leading-snug">
-                        {alert.composition} Batch <span className="font-bold text-slate-700">{alert.batch_number}</span>
-                      </p>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-center text-sm text-slate-400 py-12">No current regulatory alerts recorded.</p>
-              )}
-            </div>
-            <div className="p-4 bg-white border-t border-slate-100">
-              <Link href="/alerts" className="block w-full">
-                <button className="w-full py-3 bg-slate-50 text-slate-700 font-bold rounded-xl hover:bg-slate-100 transition-colors cursor-pointer">
-                  View Full Alert Log
-                </button>
-              </Link>
-            </div>
-          </div>
-
-                    {/* AI Assistant Promo */}
-                    <div className="relative overflow-hidden rounded-3xl bg-emerald-600 p-8 text-white shadow-xl shadow-emerald-600/20">
-                        <div className="absolute -right-12 -bottom-12 rounded-full bg-emerald-500 p-12 opacity-50 blur-3xl"></div>
-                        <div className="relative z-10 space-y-6">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur-md">
-                                <MessageCircle size={24} />
+                {/* ── Live Alerts Panel (full-width) ── */}
+                <div className="mt-8 mb-20">
+                    <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden flex flex-col h-[420px]">
+                        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                            <div className="flex items-center gap-2">
+                                <Activity size={20} className="text-red-500" />
+                                <h3 className="text-lg font-bold text-slate-800">
+                                    Live CDSCO Alerts
+                                </h3>
                             </div>
-                            <div>
-                                <h3 className="text-2xl font-black">AI Health Assistant</h3>
-                                <p className="mt-2 leading-relaxed font-medium text-emerald-100">
-                                    Have questions about your prescription or symptoms? Chat with
-                                    our AI assistant for instant, verified health guidance.
-                                </p>
+                            <span className="text-xs font-bold bg-red-100 text-red-600 px-2.5 py-1 rounded-full uppercase tracking-wider hidden sm:block">
+                                India Region
+                            </span>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-4 bg-slate-50/30">
+                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                {homepageAlerts && homepageAlerts.length > 0 ? (
+                                    homepageAlerts.map((alert) => (
+                                        <div
+                                            key={alert.id}
+                                            className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex items-start gap-4 relative overflow-hidden group hover:shadow-md transition-shadow cursor-pointer"
+                                        >
+                                            {/* Left edge colored strip */}
+                                            <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${
+                                                alert.brand_name === 'SYSTEM_UPDATE'
+                                                    ? 'bg-blue-500'
+                                                    : (alert.cdsco_approval_status === 'banned' || alert.is_counterfeit_alert)
+                                                    ? 'bg-red-500' : 'bg-orange-400'
+                                            }`} />
+
+                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                                                alert.brand_name === 'SYSTEM_UPDATE'
+                                                    ? 'bg-blue-50 text-blue-500 group-hover:bg-blue-100'
+                                                    : (alert.cdsco_approval_status === 'banned' || alert.is_counterfeit_alert)
+                                                        ? 'bg-red-50 text-red-500 group-hover:bg-red-100'
+                                                        : 'bg-orange-50 text-orange-500 group-hover:bg-orange-100'
+                                            }`}>
+                                                {alert.brand_name === 'SYSTEM_UPDATE' ? (
+                                                    <Globe size={20} strokeWidth={2.5} />
+                                                ) : (
+                                                    <AlertTriangle size={20} strokeWidth={2.5} />
+                                                )}
+                                            </div>
+
+                                            <div className="flex-1">
+                                                <div className="flex justify-between items-start">
+                                                    <h4 className="font-bold text-slate-800 leading-tight">{alert.brand_name}</h4>
+                                                    <span className="text-[11px] font-medium text-slate-400">{formatRelativeTime(alert.created_at)}</span>
+                                                </div>
+                                                <p className="text-sm text-slate-500 mt-1 font-medium leading-snug">
+                                                    {alert.composition} Batch <span className="font-bold text-slate-700">{alert.batch_number}</span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="text-center text-sm text-slate-400 py-12 sm:col-span-2">No current regulatory alerts recorded.</p>
+                                )}
                             </div>
-                            <button
-                                onClick={() => handleNavigation("health")}
-                                className="rounded-2xl bg-white px-6 py-3 font-bold text-emerald-600 transition-colors hover:bg-emerald-50"
-                            >
-                                Try Assistant
-                            </button>
+                        </div>
+                        <div className="p-4 bg-white border-t border-slate-100">
+                            <Link href="/alerts" className="block w-full">
+                                <button className="w-full py-3 bg-slate-50 text-slate-700 font-bold rounded-xl hover:bg-slate-100 transition-colors cursor-pointer">
+                                    View Full Alert Log
+                                </button>
+                            </Link>
                         </div>
                     </div>
                 </div>
