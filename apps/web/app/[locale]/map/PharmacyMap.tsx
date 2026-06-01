@@ -194,6 +194,14 @@ export default function PharmacyMap({
 
         return () => {
             mounted = false;
+            if (map.current) {
+                try {
+                    map.current.remove();
+                } catch (e) {
+                    console.error("Error during map cleanup:", e);
+                }
+                map.current = null;
+            }
         };
     }, []);
 
@@ -552,11 +560,13 @@ export default function PharmacyMap({
     // Error state
     if (mapError) {
         return (
-            <div className="flex h-full min-h-[400px] w-full items-center justify-center rounded-2xl bg-slate-100">
+            <div className="flex h-full min-h-[400px] w-full items-center justify-center rounded-2xl border border-(--color-border-muted) bg-(--color-surface-muted)">
                 <div className="space-y-3 p-6 text-center">
-                    <AlertCircle className="mx-auto text-slate-400" size={48} />
-                    <p className="text-lg font-bold text-slate-600">Map could not be loaded</p>
-                    <p className="text-sm font-medium text-slate-400">
+                    <AlertCircle className="mx-auto text-(--color-text-muted)" size={48} />
+                    <p className="text-lg font-bold text-(--color-text-primary)">
+                        Map could not be loaded
+                    </p>
+                    <p className="text-sm font-medium text-(--color-text-secondary)">
                         Please refresh the page or check your internet connection.
                     </p>
                 </div>
@@ -568,10 +578,10 @@ export default function PharmacyMap({
         <div className="relative h-full min-h-[400px] w-full">
             {/* Loading Skeleton */}
             {!isMapReady && (
-                <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-slate-100">
+                <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl border border-(--color-border-muted) bg-(--color-surface-muted)">
                     <div className="space-y-3 text-center">
                         <Loader2 className="mx-auto animate-spin text-emerald-600" size={32} />
-                        <p className="animate-pulse text-sm font-semibold text-slate-500">
+                        <p className="animate-pulse text-sm font-semibold text-(--color-text-secondary)">
                             Loading pharmacy map...
                         </p>
                     </div>
