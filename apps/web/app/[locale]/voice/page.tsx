@@ -134,14 +134,15 @@ function getConfidenceValueLabel(
     confidence: ConfidenceMeta,
     t: ReturnType<typeof useTranslations>
 ) {
-    const keyMap: Record<ConfidenceMeta["id"], string> = {
+    const keyMap = {
         high: "confidence_values.high",
         medium: "confidence_values.medium",
         low: "confidence_values.low",
         unavailable: "confidence_values.unavailable",
-    };
+    } as const;
 
-    return t(keyMap[confidence.id] as any);
+    const key = keyMap[confidence.id as keyof typeof keyMap];
+    return t(key ?? "confidence_values.unavailable");
 }
 
 export default function VoiceTriagePage() {
