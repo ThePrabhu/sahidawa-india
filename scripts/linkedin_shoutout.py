@@ -257,6 +257,7 @@ def generate_post_with_gemini(pr: dict, tier_display: str, tier_desc: str) -> st
         return _static_fallback(pr, tier_display)
 
 
+def _static_fallback(pr: dict, tier_display: str) -> str:
     return (
         f"A massive thank you from the heart to our contributor, @{pr['author']} (https://github.com/{pr['author']}).\n\n"
         f"They just landed PR #{pr['number']}: \"{pr['title']}\". "
