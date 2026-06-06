@@ -985,6 +985,7 @@ export default function ScanPage() {
                         message: "No match found in CDSCO Database",
                     }
                 );
+                setShowResult(true);
             }
         } catch (err) {
             if (!isMountedRef.current || controller.signal.aborted || ocrCancelledRef.current)
@@ -1031,14 +1032,8 @@ export default function ScanPage() {
     const handleBarcodeScan = async (scannedText: string) => {
         setIsVerifying(true);
         setApiError(null);
-
-        try {
-            await handleVerify(scannedText);
-        } catch (error: any) {
-            setApiError(error.message || "Failed to verify medicine with CDSCO.");
-        } finally {
-            setIsVerifying(false);
-        }
+        await handleVerify(scannedText);
+        setIsVerifying(false);
     };
 
     const handleScanAgain = async () => {
