@@ -303,14 +303,30 @@ def evaluate_pr_impact(pr: dict) -> None:
         print(f"⚠️  AI Gatekeeper evaluation failed ({exc}). Bypassing semantic check.")
 
 
-def get_first_name(github_username: str) -> str:
-    """Extract a human-readable first name from a GitHub username.
-    e.g. 'shashank03-dev' -> 'Shashank', 'john-doe' -> 'John'
-    """
-    # Strip trailing numbers/suffixes, split on - or _ and capitalize first part
+def get_contributor_name(github_username: str) -> str:
+    """Fetch actual full name from GitHub, fallback to parsed username."""
+    token = os.environ.get("GH_TOKEN", "")
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28"
+    }
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+        
+    try:
+        url = f"https://api.github.com/users/{github_username}"
+        resp = requests.get(url, headers=headers, timeout=10)
+        if resp.status_code == 200:
+            name = resp.json().get("name")
+            if name and name.strip():
+                return name.strip()
+    except Exception as e:
+        print(f"⚠️ Failed to fetch GitHub name: {e}")
+
+    # Fallback: Strip trailing numbers/suffixes, split on - or _ and capitalize first part
     parts = re.split(r'[-_]', github_username)
     if parts:
-        name = re.sub(r'\d+$', '', parts[0])  # Remove trailing digits
+        name = re.sub(r'\d+$', '', parts[0])
         if name:
             return name.capitalize()
     return github_username
@@ -326,7 +342,7 @@ def generate_post_with_gemini(pr: dict, tier_display: str, tier_desc: str) -> st
     Falls back to static template if API unavailable.
     """
     gemini_api_key = get_env_or_exit("GEMINI_API_KEY")
-    contributor_name = get_first_name(pr['author'])
+    contributor_name = get_contributor_name(pr['author'])
 
     system_prompt = (
         f"You are the core maintainer of '{PROJECT_NAME}'. "
@@ -438,9 +454,9 @@ def _static_fallback(pr: dict, tier_display: str) -> str:
     Generates a highly dynamic, heartfelt, and professional appreciation post
     when the Gemini AI API hits its daily free-tier quota (429) or returns incomplete content.
     Deterministically rotates between distinct human-written layout formats.
-    Note: Uses contributor's first name, NOT @github-handle (LinkedIn doesn't support GitHub mentions).
+    Note: Uses contributor's actual name, NOT @github-handle (LinkedIn doesn't support GitHub mentions).
     """
-    contributor_name = get_first_name(pr['author'])
+    contributor_name = get_contributor_name(pr['author'])
     
     templates = [
         # Template 1: Focus on impact
