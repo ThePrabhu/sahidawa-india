@@ -33,7 +33,9 @@ if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
 validateMlServiceConfig();
 
 if (process.env.NODE_ENV !== "development" && !process.env.CSRF_SECRET) {
-    logger.error("Missing CSRF_SECRET environment variable. The default fallback is predictable and insecure.");
+    logger.error(
+        "Missing CSRF_SECRET environment variable. The default fallback is predictable and insecure."
+    );
     process.exit(1);
 }
 
@@ -55,6 +57,7 @@ import alertsRouter from "./routes/alerts";
 import lasaRouter from "./routes/lasa";
 import mlRouter from "./routes/ml";
 import triageRouter from "./routes/triage";
+import interactionsRouter from "./routes/interactions";
 import { supabase } from "./db/client";
 import { createCorsOptions } from "./config/cors";
 import { errorHandler } from "./middleware/errorHandler";
@@ -211,6 +214,7 @@ app.use("/api/v1/alerts", alertsRouter);
 app.use("/api/ml", mlRouter);
 app.use("/api/triage", triageRouter);
 app.use("/api/map", mapRouter);
+app.use("/api/v1/interactions", interactionsRouter);
 app.use("/api/schedules", medicineSchedulesRouter);
 
 // ── Swagger UI Documentation (/api/docs) ──────────────────────────────────
