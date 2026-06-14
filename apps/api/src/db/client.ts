@@ -107,7 +107,8 @@ async function pooledFetch(input: RequestInfo | URL, init?: RequestInit): Promis
 
 // ── Supabase client ───────────────────────────────────────────────────────────
 
-export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseKey, {
+// Privileged backend client for server-side writes and admin-only access.
+export const serviceRoleSupabase: SupabaseClient = createClient(supabaseUrl, supabaseKey, {
     global: {
         fetch: pooledFetch as typeof fetch,
     },
@@ -116,6 +117,10 @@ export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseKey, {
         autoRefreshToken: false,
     },
 });
+
+// Backward-compatible alias for existing API modules. New code should import
+// serviceRoleSupabase so the permission level is clear at the call site.
+export const supabase = serviceRoleSupabase;
 
 // ── Graceful shutdown ─────────────────────────────────────────────────────────
 
@@ -144,12 +149,14 @@ process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
 // Log pool exhaustion warnings
-setInterval(() => {
-    const { active, queued, max } = pool.stats;
-    if (queued > 0) {
-        logger.warn(`DB pool pressure: ${active}/${max} active, ${queued} queued`);
-    }
-}, 5_000);
+if (process.env.NODE_ENV !== "test") {
+    setInterval(() => {
+        const { active, queued, max } = pool.stats;
+        if (queued > 0) {
+            logger.warn(`DB pool pressure: ${active}/${max} active, ${queued} queued`);
+        }
+    }, 5_000);
+}
 
 // Quick check on startup to see if Supabase is offline
 if (process.env.NODE_ENV !== "test") {

@@ -480,6 +480,7 @@
             "description": "Supabase URL અથવા anon key ઉપલબ્ધ નથી. સાઇન ઇન કરતા પહેલાં environment variables ઉમેરો."
         },
         "googleButton": "Google સાથે ચાલુ રાખો",
+        "githubButton": "GitHub સાથે ચાલુ રાખો",
         "emailSeparator": "અથવા ઇમેઇલ સાથે ચાલુ રાખો",
         "emailLabel": "ઇમેઇલ સરનામું",
         "emailPlaceholder": "you@example.com",
@@ -792,5 +793,13 @@
         "status_fake": "માત્ર નકલી",
         "export_button": "CSV બનાવો",
         "cancel": "રદ કરો"
+    },
+    "Map": {
+        "errors": {
+            "denied": "લોકેશન એક્સેસ નકારવામાં આવ્યું છે. કૃપા કરીને બ્રાઉઝર સેટિંગ્સમાં તેને સક્ષમ કરો.",
+            "unavailable": "લોકેશનની માહિતી ઉપલબ્ધ નથી.",
+            "timeout": "લોકેશન વિનંતીનો સમય સમાપ્ત થઈ ગયો છે.",
+            "generic": "તમારું લોકેશન મેળવવામાં અસમર્થ."
+        }
     }
 }
