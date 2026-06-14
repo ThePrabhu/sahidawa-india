@@ -379,7 +379,7 @@ export default function ExpiryTrackerPage() {
                     {/* Sidebar */}
                     <div className="h-fit rounded-2xl border border-(--color-border-muted) bg-(--color-surface-muted) p-6 shadow-sm md:sticky md:top-32 md:col-span-1">
                         <h2 className="mb-4 text-lg font-bold tracking-tight uppercase">
-                            {editingId ? "Edit Medicine" : t("addMedicine")}
+                            {editingId ? t("editMedicine") : t("addMedicine")}
                         </h2>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
@@ -449,21 +449,21 @@ export default function ExpiryTrackerPage() {
                             </div>
                             <div>
                                 <label className="mb-1 block text-xs font-bold tracking-wider uppercase opacity-60">
-                                    Notes (Optional)
+                                    {t("notesLabel")}
                                 </label>
                                 <textarea
                                     value={notes}
                                     onChange={(e) => setNotes(e.target.value)}
                                     rows={3}
                                     className="w-full resize-none rounded-xl border border-(--color-border-muted) bg-(--color-surface-page) p-3 text-(--color-text-primary) transition outline-none focus:ring-2 focus:ring-emerald-500"
-                                    placeholder="Storage instructions or dosage notes..."
+                                    placeholder={t("notesPlaceholder")}
                                 />
                             </div>
                             <button
                                 type="submit"
                                 className="w-full rounded-xl bg-emerald-600 py-3 font-bold text-white shadow-lg shadow-emerald-900/20 transition-all hover:bg-emerald-700 active:scale-95"
                             >
-                                {editingId ? "Save Changes" : t("addToTracker")}
+                                {editingId ? t("saveChanges") : t("addToTracker")}
                             </button>
                             {editingId && (
                                 <button
@@ -471,7 +471,7 @@ export default function ExpiryTrackerPage() {
                                     onClick={cancelEdit}
                                     className="flex w-full items-center justify-center gap-2 rounded-xl border border-(--color-border-muted) py-3 font-bold transition hover:bg-(--color-surface-page)"
                                 >
-                                    <X size={18} /> Cancel
+                                    <X size={18} /> {t("cancel")}
                                 </button>
                             )}
                         </form>
