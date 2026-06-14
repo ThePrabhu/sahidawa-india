@@ -3,9 +3,6 @@ from fastapi.responses import JSONResponse
 import whisper
 import tempfile
 import os
-from langchain_community.llms import Ollama
-from langchain.prompts import PromptTemplate
-from langchain.chains import LLMChain
 
 router = APIRouter(prefix="/voice", tags=["Voice Verification"])
 
@@ -27,29 +24,6 @@ LANGUAGE_SCRIPT_MAP = {
     "ur": "Nastaliq",
     "en": "Latin",
 }
-
-# LangChain prompt for medicine verification
-VERIFY_PROMPT = PromptTemplate(
-    input_variables=["medicine_name", "language"],
-    template="""
-You are a medicine verification assistant for India's CDSCO drug database.
-The user said the medicine name: "{medicine_name}" in language: {language}.
-
-Respond ONLY in JSON with this exact structure:
-{{
-  "medicine_name_original": "<name as heard>",
-  "medicine_name_english": "<English name>",
-  "medicine_name_regional": "<name in regional script>",
-  "status": "verified" | "suspicious" | "not_found",
-  "manufacturer": "<manufacturer name or unknown>",
-  "category": "<drug category>",
-  "cdsco_registered": true | false,
-  "warnings": ["<any warnings>"],
-  "detected_language": "{language}",
-  "script": "<script name>"
-}}
-"""
-)
 
 
 @router.post("/verify")

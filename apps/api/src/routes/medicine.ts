@@ -19,14 +19,17 @@ const upload = multer({
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL || "http://localhost:8000";
 const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
 
-// Redis client for caching
+// Redis client for caching - lazy singleton
 let redis: ReturnType<typeof createClient> | null = null;
-(async () => {
-  redis = createClient({ url: REDIS_URL });
-  redis.on("error", (err) => console.error("Redis error:", err));
-  await redis.connect();
-})();
 
+async function getRedisClient() {
+  if (!redis) {
+    redis = createClient({ url: REDIS_URL });
+    redis.on("error", (err) => console.error("Redis error:", err));
+    await redis.connect();
+  }
+  return redis;
+}
 /**
  * POST /api/medicine/verify-voice
  * Accepts audio blob from frontend, forwards to Python ML service,
