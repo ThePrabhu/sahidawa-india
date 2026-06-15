@@ -37,8 +37,6 @@ import "leaflet/dist/leaflet.css";
 import { CopyButton } from "@/components/ui/CopyButton";
 import { greenIcon, blueIcon, orangeIcon } from "./mapIcons";
 
-// Default radius for nearby search in kilometers
-
 export default function MapView() {
     const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
     const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);

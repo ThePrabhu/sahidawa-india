@@ -682,6 +682,7 @@ class StreamingAsrSession:
             base.update(_run_ner(transcript))
         return base
 
+
     def _run_transcription(self, *, language: str | None, final: bool) -> dict:
         if self.audio_buffer.size == 0:
             return self._build_response(self.committed_transcript)
