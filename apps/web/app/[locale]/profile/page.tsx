@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import { Link, useRouter } from "@/i18n/routing";
 import { User, ShieldCheck, Bell, ChevronRight, ArrowLeft, LogIn, LogOut } from "lucide-react";
-
-const ACCESS_TOKEN_KEY = "sb-access-token";
+import { useSession } from "@/src/components/AuthProvider";
 
 type ProfileSession =
     | { status: "checking" }
@@ -74,8 +73,11 @@ function readSessionFromToken(token: string | null): {
     }
 }
 
+const ACCESS_TOKEN_KEY = "sb-access-token";
+
 export default function ProfilePage() {
     const router = useRouter();
+    const { token, isLoading: authLoading } = useSession();
     const [session, setSession] = useState<ProfileSession>({ status: "checking" });
 
     const accountTitle =
@@ -92,14 +94,16 @@ export default function ProfilePage() {
               : "No account connected";
 
     useEffect(() => {
-        const result = readSessionFromToken(localStorage.getItem(ACCESS_TOKEN_KEY));
+        if (authLoading) return;
+
+        const result = readSessionFromToken(token);
 
         if (result.clearToken) {
             localStorage.removeItem(ACCESS_TOKEN_KEY);
         }
 
         setSession(result.session);
-    }, []);
+    }, [authLoading, token]);
 
     const handleSignOut = () => {
         localStorage.removeItem(ACCESS_TOKEN_KEY);

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Bell, BellOff } from "lucide-react";
 import { API_BASE } from "@/lib/api";
 import { LiveMessage } from "@/components/ui/LiveMessage";
+import { useSession } from "@/src/components/AuthProvider";
 
 type SubscribeState = "idle" | "subscribing" | "subscribed" | "unsupported" | "error";
 
@@ -32,6 +33,7 @@ async function getVapidPublicKey() {
 }
 
 export default function RecallPushSubscriber() {
+    const { token } = useSession();
     const [state, setState] = useState<SubscribeState>("idle");
     const [message, setMessage] = useState<string | null>(null);
 
@@ -60,7 +62,6 @@ export default function RecallPushSubscriber() {
                 applicationServerKey: urlBase64ToUint8Array(publicKey),
             });
 
-            const token = localStorage.getItem("sb-access-token");
             if (!token) {
                 setState("error");
                 setMessage("Please sign in to enable push alerts.");

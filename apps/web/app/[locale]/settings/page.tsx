@@ -10,8 +10,8 @@ import {
     updateSubscription,
     optOutSubscription,
 } from "@/lib/api/notifications";
+import { useSession } from "@/src/components/AuthProvider";
 
-const ACCESS_TOKEN_KEY = "sb-access-token";
 const GUEST_PHONE_KEY = "sahidawa-sms-phone";
 
 type FormState = {
@@ -24,6 +24,7 @@ type FormState = {
 
 export default function SettingsPage() {
     const t = useTranslations("Settings");
+    const { token: sessionToken, isLoading: authLoading } = useSession();
 
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [token, setToken] = useState<string | null>(null);
@@ -45,16 +46,17 @@ export default function SettingsPage() {
 
     // Decode JWT token loosely to verify authenticated status
     useEffect(() => {
-        const storedToken = localStorage.getItem(ACCESS_TOKEN_KEY);
-        if (storedToken) {
-            setToken(storedToken);
+        if (authLoading) return;
+
+        if (sessionToken) {
+            setToken(sessionToken);
             setIsAuthenticated(true);
         }
 
         // Fetch subscription status on load
         const guestPhone = localStorage.getItem(GUEST_PHONE_KEY) || undefined;
 
-        getSubscriptionStatus(guestPhone, storedToken || undefined)
+        getSubscriptionStatus(guestPhone, sessionToken || undefined)
             .then((res) => {
                 if (res.registered) {
                     setForm({
@@ -72,7 +74,7 @@ export default function SettingsPage() {
             .finally(() => {
                 setIsLoading(false);
             });
-    }, []);
+    }, [authLoading, sessionToken]);
 
     const validateForm = (): boolean => {
         if (!/^\d{10}$/.test(form.phone.trim())) {
