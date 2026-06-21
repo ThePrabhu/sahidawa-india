@@ -178,6 +178,7 @@ export default function FullAlertsLogPage() {
         setExpandedAlertId((prev) => (prev === id ? null : id));
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const handleShareAlert = (e: React.MouseEvent, alert: Alert) => {
         e.stopPropagation();
         const brand =
