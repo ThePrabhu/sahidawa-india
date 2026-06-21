@@ -1,10 +1,13 @@
 import { VerifiedMedicine } from "@/lib/api";
 import { ShieldCheck } from "@/components/ui/Icons";
 import { CdscoStatusBadge } from "./CdscoStatusBadge";
-import { AlertTriangle, Check, Copy, Info } from "lucide-react";
+import { AlertTriangle, Check, Copy, Info, ArrowRight } from "lucide-react";
 import { ExpiryBadge } from "../ExpiryBadge";
 import { ResultActions } from "./ResultActions";
 import { formatExpiryForBadge } from "@/lib/medicineDateUtils";
+import { Link } from "@/i18n/routing";
+import { useTranslations } from "next-intl";
+import { ExpandableDetails } from "../../ExpandableDetails";
 
 export function VerifiedSafeResult({
     medicine,
@@ -28,8 +31,15 @@ export function VerifiedSafeResult({
     shareLabel: string;
     copied: boolean;
 }) {
+    const tScan = useTranslations("Scan");
     return (
-        <div className="relative w-full max-w-sm overflow-hidden rounded-[2.5rem] border border-(--color-border-muted) bg-(--color-surface-page) p-8 text-(--color-text-primary) shadow-2xl">
+        <div
+            className="relative w-full max-w-sm overflow-hidden rounded-[2.5rem] border border-(--color-border-muted) bg-(--color-surface-page) p-8 text-(--color-text-primary) shadow-2xl"
+            role="region"
+            aria-label="Verification result - Medicine is verified and safe"
+            aria-live="polite"
+            aria-atomic="true"
+        >
             <div className="absolute top-0 right-0 left-0 h-2 bg-emerald-500"></div>
             <div className="flex flex-col items-center space-y-4 text-center">
                 <div className="dark:text-emerald-450 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 shadow-inner dark:bg-emerald-950/30">
@@ -45,7 +55,11 @@ export function VerifiedSafeResult({
                 <CdscoStatusBadge status={medicine.cdsco_approval_status} />
 
                 {scanMeta?.suspicious && (
-                    <div className="border-amber-250 flex w-full items-start gap-3 rounded-2xl border bg-amber-50 p-4 text-left dark:border-amber-900 dark:bg-amber-950/20">
+                    <div
+                        className="border-amber-250 flex w-full items-start gap-3 rounded-2xl border bg-amber-50 p-4 text-left dark:border-amber-900 dark:bg-amber-950/20"
+                        role="alert"
+                        aria-live="polite"
+                    >
                         <AlertTriangle
                             size={18}
                             className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400"
@@ -67,8 +81,12 @@ export function VerifiedSafeResult({
                             </span>
                             <button
                                 onClick={onCopyMedicineDetails}
-                                aria-label="Copy medicine details"
-                                title="Copy medicine details"
+                                aria-label={
+                                    copied
+                                        ? "Medicine details copied to clipboard"
+                                        : "Copy medicine details to clipboard"
+                                }
+                                title={copied ? "Copied!" : "Copy medicine details"}
                                 className={`shrink-0 rounded-lg p-1.5 transition-all duration-200 ${
                                     copied
                                         ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400"
@@ -82,21 +100,13 @@ export function VerifiedSafeResult({
                     <ExpiryBadge expiryDate={formatExpiryForBadge(medicine.expiry_date)} />
                 </div>
 
-                <div className="grid w-full grid-cols-2 gap-3">
+                <div className="w-full">
                     <div className="rounded-2xl border border-(--color-border-muted) bg-(--color-surface-muted) p-3">
                         <span className="block text-[10px] font-bold tracking-wider text-(--color-text-muted) uppercase">
                             Manufacturer
                         </span>
                         <span className="text-sm font-bold text-(--color-text-primary)">
                             {medicine.manufacturer}
-                        </span>
-                    </div>
-                    <div className="rounded-2xl border border-(--color-border-muted) bg-(--color-surface-muted) p-3">
-                        <span className="block text-[10px] font-bold tracking-wider text-(--color-text-muted) uppercase">
-                            Generic Name
-                        </span>
-                        <span className="text-sm font-bold text-(--color-text-primary)">
-                            {medicine.generic_name}
                         </span>
                     </div>
                 </div>
@@ -126,6 +136,18 @@ export function VerifiedSafeResult({
                             seal before use.
                         </p>
                     </div>
+                )}
+                <ExpandableDetails medicine={medicine} />
+
+                {medicine.id && (
+                    <Link
+                        href={`/calculator?medicineId=${medicine.id}`}
+                        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-4 text-sm font-black text-white shadow-lg shadow-emerald-600/15 transition-all duration-200 hover:bg-emerald-500 hover:shadow-emerald-500/25 active:scale-98"
+                        aria-label={`Calculate savings for ${medicine.brand_name}`}
+                    >
+                        <span>{tScan("calculateSavings")}</span>
+                        <ArrowRight size={16} />
+                    </Link>
                 )}
 
                 <ResultActions

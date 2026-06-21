@@ -4,6 +4,13 @@ import { join } from "path";
 
 import Navbar from "../app/[locale]/components/Navbar";
 
+jest.mock("@/src/components/AuthProvider", () => ({
+    useSession: () => ({
+        session: null,
+        isLoading: false,
+    }),
+}));
+
 jest.mock("next/image", () => ({
     __esModule: true,
     default: ({ alt = "", ...props }: { alt?: string; [key: string]: unknown }) => (
@@ -12,6 +19,7 @@ jest.mock("next/image", () => ({
 }));
 
 jest.mock("next-intl", () => ({
+    useLocale: () => "en",
     useTranslations: (namespace: string) => (key: string) => `${namespace}.${key}`,
 }));
 
@@ -25,6 +33,10 @@ jest.mock("next-themes", () => ({
 jest.mock("../app/[locale]/LanguageSwitcher", () => ({
     __esModule: true,
     default: () => <div data-testid="language-switcher" />,
+}));
+
+jest.mock("@/src/components/AuthProvider", () => ({
+    useSession: () => ({ session: null, isLoading: false }),
 }));
 
 describe("navbar sign-in navigation", () => {

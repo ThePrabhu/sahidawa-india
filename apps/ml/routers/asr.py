@@ -1,9 +1,11 @@
 from __future__ import annotations  # MUST BE LINE 1
 
+import asyncio
 import io
 import json
 import logging
 import os
+import time
 import subprocess
 import tempfile
 import threading
@@ -18,7 +20,7 @@ import numpy as np
 import soundfile as sf
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
 from faster_whisper import WhisperModel
-
+from starlette.concurrency import run_in_threadpool
 from services.fuzzy_matcher import get_phonetic_fuzzy_match  # Imported utility service
 from services.telemetry import (
     get_audio_duration_seconds,
@@ -657,11 +659,7 @@ class StreamingAsrSession:
         self.audio_buffer = self.audio_buffer[samples_to_trim:]
         self.buffer_start_seconds += samples_to_trim / STREAM_SAMPLE_RATE
 
-<<<<<<< HEAD
     def _build_response(self, transcript: str, *, run_ner: bool = False) -> dict:
-        base: dict = {
-=======
-    def _build_response(self, transcript: str) -> dict[str, str | float | bool | None]:
         medicine_db = get_medicine_database_list()
         fuzzy_match = get_phonetic_fuzzy_match(transcript, medicine_db)
 
@@ -674,8 +672,7 @@ class StreamingAsrSession:
             suggestion_applied = True
             message = f"Showing results for {corrected_name} — did you mean this?"
 
-        return {
->>>>>>> pr-1840
+        base: dict = {
             "transcript": transcript,
             "corrected_name": corrected_name,
             "suggestion_applied": suggestion_applied,
@@ -686,6 +683,7 @@ class StreamingAsrSession:
         if run_ner and transcript:
             base.update(_run_ner(transcript))
         return base
+
 
     def _run_transcription(self, *, language: str | None, final: bool) -> dict:
         if self.audio_buffer.size == 0:
@@ -867,7 +865,10 @@ async def stream_transcription(websocket: WebSocket):
 
     try:
         # ---- handshake ----
-        start_message = await websocket.receive()
+        session_start = time.monotonic()
+        MAX_SESSION_WALL_SECONDS = 120.0
+
+        start_message = await asyncio.wait_for(websocket.receive(), timeout=5.0)
 
         if "text" not in start_message or not start_message["text"]:
             await websocket.send_json(
@@ -905,7 +906,24 @@ async def stream_transcription(websocket: WebSocket):
 
         # ---- main loop ----
         while True:
-            message = await websocket.receive()
+            time_left = max(0.0, MAX_SESSION_WALL_SECONDS - (time.monotonic() - session_start))
+            if time_left <= 0:
+                await websocket.send_json({
+                    "type": "error",
+                    "error": "Streaming session timed out."
+                })
+                await websocket.close(code=1008)
+                return
+
+            try:
+                message = await asyncio.wait_for(websocket.receive(), timeout=time_left)
+            except asyncio.TimeoutError:
+                await websocket.send_json({
+                    "type": "error",
+                    "error": "Streaming session timed out."
+                })
+                await websocket.close(code=1008)
+                return
 
             if message.get("type") == "websocket.disconnect":
                 return
@@ -916,6 +934,17 @@ async def stream_transcription(websocket: WebSocket):
                     mime_type=mime_type,
                     language=language,
                 )
+
+                if session.total_audio_seconds > MAX_TRANSCRIPTION_DURATION_SECONDS:
+                    final = session.finalize(mime_type=mime_type, language=language)
+                    await websocket.send_json({
+                        "type": "error",
+                        "error": f"Streaming session exceeded maximum duration of {MAX_TRANSCRIPTION_DURATION_SECONDS}s.",
+                        **final,
+                    })
+                    await websocket.close(code=1009)
+                    return
+
                 if partial:
                     await websocket.send_json({"type": "partial", **partial})
                 continue
@@ -943,6 +972,12 @@ async def stream_transcription(websocket: WebSocket):
                     await websocket.close()
                     return
 
+                await websocket.send_json(
+                    {"type": "error", "error": "Unknown control message type."}
+                )
+                await websocket.close(code=1003)
+                return
+
     except HTTPException as exc:
         await websocket.send_json({"type": "error", "error": exc.detail})
         await websocket.close(code=1011)
@@ -950,4 +985,4 @@ async def stream_transcription(websocket: WebSocket):
         return
     finally:
         if session is not None:
-            session.close()
+            await run_in_threadpool(session.close)

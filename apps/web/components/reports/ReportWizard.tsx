@@ -6,8 +6,9 @@
  * Tech: React Hook Form · Zod · @hookform/resolvers · Framer Motion · Tailwind CSS
  * Design: SahiDawa modern aesthetic — emerald accents, deep navy header, rounded corners
  */
-
+import { handleApiError } from "@/lib/apiErrorHandler";
 import React, { useState, useEffect, useId } from "react";
+import { useSearchParams } from "next/navigation";
 import { useForm, FormProvider, useFormContext } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -31,7 +32,6 @@ import {
     queueReport,
     getPendingCount,
 } from "@/lib/offlineStorage";
-import { initBackgroundSync } from "@/lib/backgroundSync";
 
 // ─── Cloudinary env ────────────────────────────────────────────────────────────
 // Uploads are now securely routed through our backend API (/api/upload),
@@ -78,6 +78,8 @@ const schema = z.object({
                     "Enter a valid 6-digit Indian Pincode (cannot start with 0)"
                 )
         ),
+    scannedBarcode: z.string().optional(),
+    medicineId: z.string().optional(),
 });
 export type FormValues = z.infer<typeof schema>;
 
@@ -91,6 +93,8 @@ const EMPTY: FormValues = {
     city: "",
     state: "",
     pincode: "",
+    scannedBarcode: undefined,
+    medicineId: undefined,
 };
 
 // ─── Per-step field keys ────────────────────────────────────────────────────────
@@ -823,13 +827,14 @@ export default function ReportWizard() {
     const [pendingCount, setPendingCount] = useState(0);
     const [restoredDraft, setRestoredDraft] = useState(false);
     const submitErrorId = useId();
+    const searchParams = useSearchParams();
 
     const methods = useForm<FormValues>({
         resolver: zodResolver(schema),
         defaultValues: EMPTY,
         mode: "onTouched",
     });
-    const { trigger, handleSubmit, reset } = methods;
+    const { trigger, handleSubmit, reset, setValue } = methods;
 
     // Cleanup blob URLs on unmount to prevent memory leaks
     useEffect(() => {
@@ -861,16 +866,24 @@ export default function ReportWizard() {
         })();
     }, []);
 
-    // Background sync of queued offline reports
+    // Extract barcode and medicineId from URL query parameters
     useEffect(() => {
-        const cleanup = initBackgroundSync((count) => {
-            toast.success(
-                `${count} pending report${count > 1 ? "s" : ""} submitted now that you're back online.`
-            );
-            setPendingCount((c) => Math.max(0, c - count));
-        });
+        const barcode = searchParams.get("barcode");
+        const medicineId = searchParams.get("medicineId");
+        if (barcode) setValue("scannedBarcode", barcode);
+        if (medicineId) setValue("medicineId", medicineId);
+    }, [searchParams, setValue]);
+
+    // Initialize pending count and listen for global sync events
+    useEffect(() => {
         void getPendingCount().then(setPendingCount);
-        return cleanup;
+
+        const handleSynced = (e: Event) => {
+            const count = (e as CustomEvent).detail?.count || 0;
+            setPendingCount((c) => Math.max(0, c - count));
+        };
+        window.addEventListener("reports-synced", handleSynced);
+        return () => window.removeEventListener("reports-synced", handleSynced);
     }, []);
 
     // Autosave draft as the user fills the form (skip until initial restore is done)
@@ -930,7 +943,8 @@ export default function ReportWizard() {
                 setSubmitErr(
                     "You're offline and the report could not be saved locally. Please try again."
                 );
-                toast.error("Failed to save report locally.");
+
+                await handleApiError(queueErr, "Failed to save report locally.");
             } finally {
                 setSubmitting(false);
             }

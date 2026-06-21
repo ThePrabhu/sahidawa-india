@@ -52,6 +52,7 @@ def test_stream_returns_partial_and_final_events(monkeypatch):
     class FakeStreamingSession:
         def __init__(self):
             self.chunk_count = 0
+            self.total_audio_seconds = 0.0
 
         def append_and_maybe_transcribe(self, chunk, *, mime_type, language):
             self.chunk_count += 1
@@ -115,6 +116,9 @@ def test_stream_returns_empty_final_when_stopped_before_audio():
         assert final == {
             "type": "final",
             "transcript": "",
+            "corrected_name": "",
+            "suggestion_applied": False,
+            "message": None,
             "language": None,
             "languageConfidence": None,
         }

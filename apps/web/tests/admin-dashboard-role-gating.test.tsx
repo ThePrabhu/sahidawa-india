@@ -22,17 +22,22 @@ const mockGetSession = jest.fn(async () => ({
     },
 }));
 
-jest.mock("@supabase/ssr", () => ({
-    createBrowserClient: () => ({
-        auth: {
-            getSession: () => mockGetSession(),
-        },
-    }),
-}));
-
-jest.mock("@/lib/env", () => ({
-    getSupabaseAnonKey: () => "test-anon-key",
-    getSupabaseUrl: () => "http://localhost:54321",
+jest.mock("@/src/components/AuthProvider", () => ({
+    useSession: () => {
+        if (!mockSessionRole) {
+            return { session: null, isLoading: false, token: null };
+        }
+        return {
+            session: {
+                user: {
+                    app_metadata: { role: mockSessionRole },
+                    user_metadata: {},
+                },
+            },
+            isLoading: false,
+            token: "test-token",
+        };
+    },
 }));
 
 jest.mock("@/i18n/routing", () => ({
@@ -48,6 +53,7 @@ jest.mock("@/i18n/routing", () => ({
 }));
 
 jest.mock("next-intl", () => ({
+    useLocale: () => "en",
     useTranslations: () => {
         const messages: Record<string, string> = {
             "actions.addMedicine": "Add Medicine",
