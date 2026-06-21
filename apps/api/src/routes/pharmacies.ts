@@ -743,9 +743,9 @@ router.post(
 
         const validationResult = inventoryRowSchema.safeParse(rowData);
         if (!validationResult.success) {
-          const errorMessage = validationResult.error.errors
-            .map((e) => e.message)
-            .join(", ");
+          const errorMessage = validationResult.error.issues
+          .map((e: any) => e.message)
+          .join(", ");
           failedRows.push({ row: i + 1, reason: errorMessage });
           continue;
         }
