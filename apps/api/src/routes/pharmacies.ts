@@ -39,8 +39,14 @@ interface PharmacyRpcResult {
     distance: number;
 }
 
+/** Pharmacy row returned by the delta-sync RPC (adds id + updated_at) */
+interface PharmacyDeltaRpcResult extends PharmacyRpcResult {
+    updated_at: string;
+}
+
 /** Formatted pharmacy object returned in API responses */
 interface FormattedPharmacy {
+    id?: string;
     name: string;
     address: string;
     lat: number;
@@ -50,6 +56,7 @@ interface FormattedPharmacy {
     is_verified: boolean;
     district: string | null;
     state: string | null;
+    updated_at?: string;
 }
 
 /** Internal type used during sorting (includes raw numeric distance) */
@@ -153,6 +160,12 @@ const boundsQuerySchema = z
         west: z.coerce.number().min(-180).max(180),
         north: z.coerce.number().min(-90).max(90),
         east: z.coerce.number().min(-180).max(180),
+        // Optional ISO timestamp (e.g. "2026-06-20T10:00:00.000Z"). When
+        // provided, only pharmacies created/updated after this time are
+        // returned, instead of the full bounding box. See #2260 (delta sync).
+        // Omitting it preserves the original full-payload behaviour so
+        // existing callers (and tests) are unaffected.
+        since: z.coerce.date().optional(),
     })
     .refine((data) => data.south < data.north, {
         message: "South boundary must be less than North boundary",
@@ -439,6 +452,14 @@ router.get("/nearest", async (req: Request, res: Response, next: NextFunction) =
  *       Returns pharmacies whose location falls inside the given bounding box.
  *       Uses PostGIS ST_Intersects with ST_MakeEnvelope for efficient spatial
  *       queries with automatic fallback to in-memory filtering.
+ *
+ *       When `since` is provided, only pharmacies created or updated after
+ *       that timestamp are returned (delta sync, #2260). This is intended
+ *       for repeat requests over a bounding box the client has already
+ *       synced — e.g. re-fetching after panning back to a previously seen
+ *       area — to avoid re-downloading unchanged records. Deletions are not
+ *       reported by this endpoint; pharmacies are hard-deleted today and
+ *       there is no tombstone mechanism yet.
  *     tags:
  *       - Pharmacies
  *     parameters:
@@ -478,6 +499,15 @@ router.get("/nearest", async (req: Request, res: Response, next: NextFunction) =
  *           maximum: 180
  *         description: Eastern longitude boundary
  *         example: 77.4
+ *       - in: query
+ *         name: since
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: >
+ *           ISO timestamp from a previous response's `syncedAt` field. When
+ *           provided, only pharmacies changed after this time are returned.
  *     responses:
  *       200:
  *         description: List of pharmacies within the bounding box
@@ -491,6 +521,8 @@ router.get("/nearest", async (req: Request, res: Response, next: NextFunction) =
  *                   items:
  *                     type: object
  *                     properties:
+ *                       id:
+ *                         type: string
  *                       name:
  *                         type: string
  *                       address:
@@ -512,6 +544,17 @@ router.get("/nearest", async (req: Request, res: Response, next: NextFunction) =
  *                       state:
  *                         type: string
  *                         nullable: true
+ *                       updated_at:
+ *                         type: string
+ *                         nullable: true
+ *                 syncedAt:
+ *                   type: string
+ *                   description: >
+ *                     Server timestamp to pass back as `since` on the next
+ *                     request to this bounding box.
+ *                 delta:
+ *                   type: boolean
+ *                   description: True if this response only contains changes since `since`.
  *       400:
  *         description: Invalid bounds
  *         content:
@@ -533,20 +576,39 @@ router.get("/in-bounds", async (req: Request, res: Response, next: NextFunction)
             return;
         }
 
-        const { south, west, north, east } = result.data;
+        const { south, west, north, east, since } = result.data;
+        // Captured before querying so a client that stores this value will
+        // not miss writes that land between the query and the response.
+        const syncedAt = new Date().toISOString();
 
         const centerLat = (south + north) / 2;
         const centerLng = (west + east) / 2;
 
-        // Primary path: PostGIS spatial query via RPC
-        const { data: rpcData, error: rpcError } = await supabase.rpc(
-            "get_pharmacies_in_bounds" as string,
-            { bound_south: south, bound_west: west, bound_north: north, bound_east: east }
-        );
+        // Primary path: PostGIS spatial query via RPC. Use the delta-aware
+        // RPC whenever `since` is present so unchanged rows never leave the
+        // database; otherwise keep using the original RPC so behaviour for
+        // existing callers (and existing tests) is unchanged.
+        const { data: rpcData, error: rpcError } = since
+            ? await supabase.rpc("get_pharmacies_in_bounds_delta" as string, {
+                  bound_south: south,
+                  bound_west: west,
+                  bound_north: north,
+                  bound_east: east,
+                  since: since.toISOString(),
+              })
+            : await supabase.rpc("get_pharmacies_in_bounds" as string, {
+                  bound_south: south,
+                  bound_west: west,
+                  bound_north: north,
+                  bound_east: east,
+              });
 
         if (!rpcError && rpcData) {
-            const pharmacies: FormattedPharmacy[] = (rpcData as PharmacyRpcResult[])
-                .map((p: PharmacyRpcResult) => ({
+            const pharmacies: FormattedPharmacy[] = (
+                rpcData as (PharmacyRpcResult | PharmacyDeltaRpcResult)[]
+            )
+                .map((p) => ({
+                    id: p.id,
                     name: p.name || "Unknown Pharmacy",
                     address: p.address || "Unknown Address",
                     lat: p.lat,
@@ -556,14 +618,19 @@ router.get("/in-bounds", async (req: Request, res: Response, next: NextFunction)
                     is_verified: p.is_verified ?? false,
                     district: p.district || null,
                     state: p.state || null,
+                    updated_at: "updated_at" in p ? p.updated_at : undefined,
                 }))
                 .slice(0, MAX_RESULTS);
-            return res.json({ pharmacies });
+            return res.json({ pharmacies, syncedAt, delta: Boolean(since) });
         }
 
-        // Fallback path: in-memory bounding box filter
+        // Fallback path: in-memory bounding box filter. `since` filtering is
+        // not applied here — the fallback already exists for RPC-unavailable
+        // scenarios (e.g. local dev without the PostGIS functions installed)
+        // and is expected to return the full set in that case.
         logger.warn("PostGIS bounds RPC unavailable, falling back to in-memory filter", {
             error: rpcError?.message,
+            usedDeltaRpc: Boolean(since),
         });
 
         const { data: allPharmacies, error: fetchError } = await supabase
@@ -599,7 +666,7 @@ router.get("/in-bounds", async (req: Request, res: Response, next: NextFunction)
             .slice(0, MAX_RESULTS)
             .map(({ coords, ...rest }) => rest);
 
-        res.json({ pharmacies });
+        res.json({ pharmacies, syncedAt, delta: false });
     } catch (err) {
         next(err);
     }
